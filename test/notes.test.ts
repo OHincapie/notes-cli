@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { run } from "../src/cli.ts";
-import { addNote, deleteNote, formatList, NotesError, type Note } from "../src/notes.ts";
+import { addNote, deleteNote, formatList, formatSearch, NotesError, searchNotes, type Note } from "../src/notes.ts";
 
 const DAY = "2026-11-06";
 const tmpFile = () => join(mkdtempSync(join(tmpdir(), "notes-")), "notes.json");
@@ -28,6 +28,34 @@ describe("notes", () => {
   it("formats a list", () => {
     expect(formatList([])).toBe("No notes yet.");
     expect(formatList(addNote([], "milk", DAY))).toBe("1. milk (2026-11-06)");
+  });
+});
+
+describe("search", () => {
+  const notes = addNote(addNote(addNote([], "buy milk", DAY), "call bob", DAY), "Milk run", DAY);
+
+  it("finds notes containing the text, ignoring case", () => {
+    expect(searchNotes(notes, "milk").map((n) => n.id)).toEqual([1, 3]);
+    expect(searchNotes(notes, "MILK").map((n) => n.id)).toEqual([1, 3]);
+  });
+
+  it("returns [] when nothing matches and refuses empty queries", () => {
+    expect(searchNotes(notes, "zzz")).toEqual([]);
+    expect(() => searchNotes(notes, "  ")).toThrow(NotesError);
+  });
+
+  it("formats search results", () => {
+    expect(formatSearch([])).toBe("No matching notes.");
+    expect(formatSearch(searchNotes(notes, "bob"))).toBe("2. call bob (2026-11-06)");
+  });
+
+  it("searches through the cli without changing the file", () => {
+    const file = tmpFile();
+    run(["add", "buy", "milk"], file, DAY);
+    expect(run(["search", "MILK"], file, DAY)).toEqual({ code: 0, out: "1. buy milk (2026-11-06)" });
+    expect(run(["search", "zzz"], file, DAY)).toEqual({ code: 0, out: "No matching notes." });
+    expect(run(["list"], file, DAY).out).toBe("1. buy milk (2026-11-06)");
+    expect(run(["search", " "], file, DAY).code).toBe(1);
   });
 });
 
