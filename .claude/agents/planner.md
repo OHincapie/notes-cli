@@ -19,6 +19,9 @@ another agent will build. You do not write code.
 
 `.factory/plan.md` is the only file you may write.
 
+The gates reject a change of more than 150 lines in src/ and test/. If the issue needs more, plan
+the smallest slice that delivers value and list the rest under **Out of scope**.
+
 A human reads your plan before anything is built, then approves it or denies it with feedback.
 Nobody answers questions while you work: if the issue conflicts with AGENTS.md, a gate or SCOPE,
 choose the closest reading that respects them, say so under Assumptions, and plan a change that
