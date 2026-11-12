@@ -1,9 +1,9 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { run } from "../src/cli.ts";
-import { addNote, deleteNote, formatList, NotesError, type Note } from "../src/notes.ts";
+import { addNote, deleteNote, formatList, NotesError, parseId, type Note } from "../src/notes.ts";
 
 const DAY = "2026-11-06";
 const tmpFile = () => join(mkdtempSync(join(tmpdir(), "notes-")), "notes.json");
@@ -23,6 +23,14 @@ describe("notes", () => {
     const notes: Note[] = addNote([], "a", DAY);
     expect(deleteNote(notes, 1)).toEqual([]);
     expect(() => deleteNote(notes, 9)).toThrow("no note with id 9");
+  });
+
+  it("parses ids", () => {
+    expect(parseId("1")).toBe(1);
+    expect(parseId("42")).toBe(42);
+    for (const raw of ["abc", "", "0", "-2", "1.5", undefined]) {
+      expect(() => parseId(raw)).toThrow("the id must be a positive whole number");
+    }
   });
 
   it("formats a list", () => {
@@ -50,6 +58,17 @@ describe("cli", () => {
     writeFileSync(file, "{ not json");
     expect(run(["list"], file, DAY).code).toBe(1);
     expect(run(["delete", "3"], tmpFile(), DAY)).toEqual({ code: 1, out: "error: no note with id 3" });
+  });
+
+  it("rejects missing or invalid ids on delete", () => {
+    const bad = { code: 1, out: "error: the id must be a positive whole number" };
+    const file = tmpFile();
+    run(["add", "x"], file, DAY);
+    const before = readFileSync(file, "utf8");
+    for (const args of [["delete", "abc"], ["delete"], ["delete", "0"], ["delete", "-2"], ["delete", "1.5"]]) {
+      expect(run(args, file, DAY)).toEqual(bad);
+    }
+    expect(readFileSync(file, "utf8")).toBe(before);
   });
 
   it("prints usage for unknown commands", () => {
