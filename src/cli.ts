@@ -1,5 +1,5 @@
 // notes add <text> | notes list | notes delete <id>. Run with: node src/cli.ts <command>
-import { addNote, deleteNote, formatList, loadNotes, NotesError, saveNotes } from "./notes.ts";
+import { addNote, deleteNote, formatList, loadNotes, NotesError, parseId, saveNotes } from "./notes.ts";
 
 export interface Result {
   code: number;
@@ -19,8 +19,9 @@ export function run(argv: string[], file: string, today: string): Result {
     }
     if (command === "list") return { code: 0, out: formatList(notes) };
     if (command === "delete") {
-      saveNotes(file, deleteNote(notes, Number(rest[0])));
-      return { code: 0, out: `Deleted note ${rest[0]}.` };
+      const id = parseId(rest[0]);
+      saveNotes(file, deleteNote(notes, id));
+      return { code: 0, out: `Deleted note ${id}.` };
     }
     return { code: 2, out: USAGE };
   } catch (err) {

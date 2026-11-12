@@ -32,6 +32,14 @@ export function deleteNote(notes: Note[], id: number): Note[] {
   return notes.filter((n) => n.id !== id);
 }
 
+export function parseId(raw: string | undefined): number {
+  const id = Number(raw);
+  if (raw === undefined || !/^[1-9]\d*$/.test(raw) || !Number.isSafeInteger(id)) {
+    throw new NotesError("the id must be a positive whole number");
+  }
+  return id;
+}
+
 export function formatList(notes: Note[]): string {
   if (notes.length === 0) return "No notes yet.";
   return notes.map((n) => `${n.id}. ${n.text} (${n.created})`).join("\n");
